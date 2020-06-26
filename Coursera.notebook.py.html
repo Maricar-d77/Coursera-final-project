@@ -1,0 +1,583 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
+get_ipython().system('pip install lxml')
+
+
+# In[2]:
+
+
+import pandas as pd
+import numpy as np
+get_ipython().system('pip install beautifulsoup4')
+
+
+# In[3]:
+
+
+#Explore San Francisco for a potential city to open a bakery
+
+
+# In[25]:
+
+
+#download San Francisco cities from Wikipedia
+url='https://en.wikipedia.org/wiki/Portal:San_Francisco_Bay_Area/Cities/Table'
+df=pd.read_html(url)[1]
+
+
+# In[26]:
+
+
+df.head()
+
+
+# In[27]:
+
+
+df.shape
+
+
+# In[28]:
+
+
+#Rename columns
+df.columns=['Name','Type','County','Population 2010', 'Incorporated','Land area','Incorporated Unamed']
+
+
+# In[29]:
+
+
+
+df
+
+
+# In[9]:
+
+
+#clean dataframe
+del df['Incorporated']
+
+
+# In[10]:
+
+
+del df['Land area']
+
+
+# In[11]:
+
+
+del df['Incorporated Unamed']
+
+
+# In[12]:
+
+
+df
+
+
+# In[13]:
+
+
+#look for the most populated city
+df.sort_values('Population 2010', ascending=False)
+
+
+# In[30]:
+
+
+import requests # library to handle requests
+import pandas as pd # library for data analsysis
+import numpy as np # library to handle data in a vectorized manner
+import random # library for random number generation
+
+get_ipython().system('conda install -c conda-forge geopy --yes ')
+from geopy.geocoders import Nominatim # module to convert an address into latitude and longitude values
+
+# libraries for displaying images
+from IPython.display import Image 
+from IPython.core.display import HTML 
+    
+# tranforming json file into a pandas dataframe library
+from pandas.io.json import json_normalize
+
+get_ipython().system('conda install -c conda-forge folium=0.5.0 --yes')
+import folium # plotting library
+
+print('Folium installed')
+print('Libraries imported.') 
+
+
+# In[31]:
+
+
+get_ipython().system('pip install geocoder')
+get_ipython().system('pip install geopandas')
+get_ipython().system('pip install geopy')
+
+
+# In[ ]:
+
+
+
+
+
+# In[32]:
+
+
+#Let's explore the most populated city in San Francisco
+address = 'San Jose, CA'
+
+geolocator = Nominatim(user_agent="ny_explorer")
+location = geolocator.geocode(address)
+latitude = location.latitude
+longitude = location.longitude
+print('The geograpical coordinate of San Jose are {}, {}.'.format(latitude, longitude))
+
+
+# In[33]:
+
+
+#use geocoder to get location latitude and longitude points
+from geopy.extra.rate_limiter import RateLimiter
+
+# 1 - conveneint function to delay between geocoding calls
+geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
+# 2- - create location column
+df['location'] = df['County'].apply(geocode)
+# 3 - create longitude, laatitude and altitude from location column (returns tuple)
+df['point'] = df['location'].apply(lambda loc: tuple(loc.point) if loc else None)
+# 4 - split point column into latitude, longitude and altitude columns
+df[['latitude', 'longitude', 'altitude']] = pd.DataFrame(df['point'].tolist(), index=df.index)
+df
+
+
+# In[18]:
+
+
+#Let's see where the counties are in relation to San Jose
+SF_map = folium.Map(location=[latitude, longitude], zoom_start=8) # generate map centred around the Conrad Hotel
+
+# add a red circle marker to represent 
+folium.features.CircleMarker(
+    [37.3361905, -121.8905833],
+    radius=7,
+    color='red',
+    popup='San Jose',
+    fill = True,
+    fill_color = 'red',
+    fill_opacity = 0.6
+).add_to(SF_map)
+# add popular spots to the map as blue circle markers
+for lat, lng, label in zip(df['latitude'], df['longitude'], df['County']):
+    label = folium.Popup(label, parse_html=True)
+    folium.CircleMarker(
+        [lat, lng],
+        radius=5,
+        popup=label,
+        color='green',
+        fill=True,
+        fill_color='green',
+        fill_opacity=0.7,
+        parse_html=False).add_to(SF_map)  
+    
+# display map
+SF_map
+
+
+# In[19]:
+
+
+#from CI Gateway Zip Code List look up cities in Santa Clara
+
+
+# In[38]:
+
+
+url='http://www.ciclt.net/sn/clt/capitolimpact/gw_ziplist.aspx?ClientCode=capitolimpact&State=ca&StName=California&StFIPS=&FIPS=06085'
+df1=pd.read_html(url)[2]
+df1
+
+
+# In[39]:
+
+
+#Clean up San Jose dataframe
+df1.columns=['ZIP code','City','County']
+
+
+# In[41]:
+
+
+df1['State']='California'
+
+
+# In[42]:
+
+
+df1['Address']=df1['City']+','+df1['State']
+
+
+# In[43]:
+
+
+df1
+
+
+# In[44]:
+
+
+#use geocoder to get location latitude and longitude points for Santa Clara neighborhoods
+from geopy.extra.rate_limiter import RateLimiter
+
+# 1 - conveneint function to delay between geocoding calls
+geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
+# 2- - create location column
+df1['location'] = df1['Address'].apply(geocode)
+# 3 - create longitude, latitude and altitude from location column (returns tuple)
+df1['point'] = df1['location'].apply(lambda loc: tuple(loc.point) if loc else None)
+# 4 - split point column into latitude, longitude and altitude columns
+df1[['latitude', 'longitude','altitude']] = pd.DataFrame(df1['point'].tolist(), index=df1.index)
+df1
+
+
+# In[45]:
+
+
+#clean data drop Nan
+df1=df1.drop([15])
+df1
+
+
+# In[46]:
+
+
+#map cities in San Jose
+SJ_map = folium.Map(location=[latitude, longitude], zoom_start=10) # generate map centred around the Conrad Hotel
+
+# add a red circle marker to represent 
+folium.features.CircleMarker(
+    [37.3361905, -121.8905833],
+    radius=7,
+    color='red',
+    popup='San Jose',
+    fill = True,
+    fill_color = 'red',
+    fill_opacity = 0.6
+).add_to(SJ_map)
+#add cities
+for lat, lng, label in zip(df1['latitude'], df1['longitude'], df1['City']):
+    label = folium.Popup(label, parse_html=True)
+    folium.CircleMarker(
+        [lat, lng],
+        radius=5,
+        popup=label,
+        color='green',
+        fill=True,
+        fill_color='green',
+        fill_opacity=0.7,
+        parse_html=False).add_to(SJ_map)  
+    
+    
+# display map of San Jose and it's cities
+SJ_map
+
+
+# In[47]:
+
+
+CLIENT_ID = 'GBATYYSJS45OFJJ2CJNIFQUNYXRMOUE2UWNCJDU00NES5HTS' # your Foursquare ID
+CLIENT_SECRET = 'N1FIOL3CFR2VTWTILBC10ZTB4T5S4GGMDR44BK3HNIU10LML' # your Foursquare Secret
+VERSION = '20180604'
+LIMIT = 30
+print('done')
+
+
+# In[48]:
+
+
+#use Foursquare to get venues in San Jose cities
+def getNearbyVenues(names, latitudes, longitudes, radius=500):
+    
+    venues_list=[]
+    for name, lat, lng in zip(names, latitudes, longitudes):
+        print(name)
+            
+        # create the API request URL
+        url = 'https://api.foursquare.com/v2/venues/explore?&client_id={}&client_secret={}&v={}&ll={},{}&radius={}&limit={}'.format(
+            CLIENT_ID, 
+            CLIENT_SECRET, 
+            VERSION, 
+            lat, 
+            lng, 
+            radius, 
+            LIMIT)
+            
+        # make the GET request
+        results = requests.get(url).json()["response"]['groups'][0]['items']
+        
+        # return only relevant information for each nearby venue
+        venues_list.append([(
+            name, 
+            lat, 
+            lng, 
+            v['venue']['name'], 
+            v['venue']['location']['lat'], 
+            v['venue']['location']['lng'],  
+            v['venue']['categories'][0]['name']) for v in results])
+
+    nearby_venues = pd.DataFrame([item for venue_list in venues_list for item in venue_list])
+    nearby_venues.columns = ['City', 
+                  'City Latitude', 
+                  'City Longitude', 
+                  'Venue', 
+                  'Venue Latitude', 
+                  'Venue Longitude', 
+                  'Venue Category']
+    
+    return(nearby_venues)
+
+
+# In[49]:
+
+
+#get venues by city
+SC_venues = getNearbyVenues(names=df1['City'],
+                                   latitudes=df1['latitude'],
+                                   longitudes=df1['longitude'])
+
+
+# In[50]:
+
+
+print(SC_venues.shape)
+SC_venues.head()
+
+
+# In[51]:
+
+
+SC_venues.groupby('City').count()
+
+
+# In[52]:
+
+
+print('There are {} uniques categories.'.format(len(SC_venues['Venue Category'].unique())))
+
+
+# In[53]:
+
+
+#analyze each city
+# one hot encoding
+SC_onehot = pd.get_dummies(SC_venues[['Venue Category']], prefix="", prefix_sep="")
+
+# add neighborhood column back to dataframe
+SC_onehot['City'] =SC_venues['City']
+
+# move neighborhood column to the first column
+fixed_columns = [SC_onehot.columns[-1]] + list(SC_onehot.columns[:-1])
+SC_onehot = SC_onehot[fixed_columns]
+
+SC_onehot.head()
+
+
+# In[54]:
+
+
+#group each city and take the mean of the frequency of occurrence of each category
+SC_grouped = SC_onehot.groupby(df1['City']).mean().reset_index()
+SC_grouped
+
+
+# In[55]:
+
+
+#print city with top 5 venues
+num_top_venues = 5
+
+for city in SC_grouped['City']:
+    print("----"+city+"----")
+    temp = SC_grouped[SC_grouped['City'] == city].T.reset_index()
+    temp.columns = ['venue','freq']
+    temp = temp.iloc[1:]
+    temp['freq'] = temp['freq'].astype(float)
+    temp = temp.round({'freq': 2})
+    print(temp.sort_values('freq', ascending=False).reset_index(drop=True).head(num_top_venues))
+    print('\n')
+
+
+# In[ ]:
+
+
+#The cities where bakery was on the top 5 venues were Campbell, Cupertino and Los Altos, Mountain View
+
+
+# In[ ]:
+
+
+#Campell=.33, Cupertino=.5, Los Altos=.33, Mountain View=.17
+
+
+# In[56]:
+
+
+def return_most_common_venues(row, num_top_venues):
+    row_categories = row.iloc[1:]
+    row_categories_sorted = row_categories.sort_values(ascending=False)
+    
+    return row_categories_sorted.index.values[0:num_top_venues]
+
+
+# In[60]:
+
+
+#make dataframe for top 10 venues
+num_top_venues = 10
+
+indicators = ['st', 'nd', 'rd']
+
+# create columns according to number of top venues
+columns = ['City']
+for ind in np.arange(num_top_venues):
+    try:
+        columns.append('{}{} Most Common Venue'.format(ind+1, indicators[ind]))
+    except:
+        columns.append('{}th Most Common Venue'.format(ind+1))
+
+# create a new dataframe
+SC_venues_sorted = pd.DataFrame(columns=columns)
+SC_venues_sorted['City'] = SC_grouped['City']
+
+for ind in np.arange(SC_grouped.shape[0]):
+    SC_venues_sorted.iloc[ind, 1:] = return_most_common_venues(SC_grouped.iloc[ind, :], num_top_venues)
+
+SC_venues_sorted.head()
+
+
+# In[61]:
+
+
+# import k-means from clustering stage to cluster cities
+from sklearn.cluster import KMeans
+# Matplotlib and associated plotting modules
+import matplotlib.cm as cm
+import matplotlib.colors as colors
+
+
+# In[62]:
+
+
+# set number of clusters
+kclusters = 5
+
+SC_grouped_clustering = SC_grouped.drop('City', 1)
+
+# run k-means clustering
+kmeans = KMeans(n_clusters=kclusters, random_state=0).fit(SC_grouped_clustering)
+
+# check cluster labels generated for each row in the dataframe
+kmeans.labels_[0:10]
+
+
+# In[63]:
+
+
+# add clustering labels
+SC_venues_sorted.insert(0, 'Cluster Labels', kmeans.labels_)
+
+
+SC_merged = df1
+
+# merge SC_grouped with dataframe to add latitude/longitude for each City
+SC_merged = SC_merged.join(SC_venues_sorted.set_index('City'), on='City')
+
+SC_merged.head() 
+
+
+# In[64]:
+
+
+
+SC_merged['Cluster Labels'].astype(int)
+
+
+# In[65]:
+
+
+map_clusters = folium.Map(location=[latitude, longitude], zoom_start=11)
+
+# set color scheme for the clusters
+x = np.arange(kclusters)
+ys = [i + x + (i*x)**2 for i in range(kclusters)]
+colors_array = cm.rainbow(np.linspace(0, 1, len(ys)))
+rainbow = [colors.rgb2hex(i) for i in colors_array]
+
+# add markers to the map
+markers_colors = []
+for lat, lon, poi, cluster in zip(SC_merged['latitude'], SC_merged['longitude'], SC_merged['City'], SC_merged['Cluster Labels']):
+    label = folium.Popup(str(poi) + ' Cluster ' + str(cluster), parse_html=True)
+    folium.CircleMarker(
+        [lat, lon],
+        radius=5,
+        popup=label,
+        color=rainbow[cluster-1],
+        fill=True,
+        fill_color=rainbow[cluster-1],
+        fill_opacity=0.7).add_to(map_clusters)
+       
+map_clusters
+
+
+# In[66]:
+
+
+SC_merged.loc[SC_merged['Cluster Labels'] == 0,SC_merged.columns[[1] + list(range(5, SC_merged.shape[1]))]]
+
+
+# In[ ]:
+
+
+#cluster 1 Gourmet Shops/Yoga
+
+
+# In[67]:
+
+
+SC_merged.loc[SC_merged['Cluster Labels'] == 1,SC_merged.columns[[1] + list(range(5, SC_merged.shape[1]))]]
+
+
+# In[ ]:
+
+
+#Cluster 2 American and Greek Restaurants/Yoga
+
+
+# In[68]:
+
+
+SC_merged.loc[SC_merged['Cluster Labels'] == 2,SC_merged.columns[[1] + list(range(5, SC_merged.shape[1]))]]
+
+
+# In[69]:
+
+
+SC_merged.loc[SC_merged['Cluster Labels'] == 3,SC_merged.columns[[1] + list(range(5, SC_merged.shape[1]))]]
+
+
+# In[70]:
+
+
+SC_merged.loc[SC_merged['Cluster Labels'] == 4,SC_merged.columns[[1] + list(range(5, SC_merged.shape[1]))]]
+
+
+# In[ ]:
+
+
+#end of notebook
+
